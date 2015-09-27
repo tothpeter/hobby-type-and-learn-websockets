@@ -1,9 +1,16 @@
 require 'socket'
-client = UNIXSocket.open("tmp/sockets/web_socekts.sock")
-client.puts "1"
+require 'json'
 
+client = UNIXSocket.open("tmp/sockets/web_socekts.sock")
+
+message = {
+  type: "event",
+  event: {
+    type: "cards.import.finished",
+    user_id: 1
+  }
+  
+}
+
+client.print JSON.generate(message)
 client.close
-# sleep 9
-# client.puts "2"
-# client.puts "3"
-# client.puts "4"

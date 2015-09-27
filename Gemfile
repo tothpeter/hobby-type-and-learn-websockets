@@ -3,3 +3,4 @@ source 'https://rubygems.org'
 
 gem 'puma'
 gem 'faye-websocket'
+gem 'json'

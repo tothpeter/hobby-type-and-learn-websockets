@@ -1,16 +1,8 @@
 #\ -s puma -E production
 
-
-# class Rack::Lint::HijackWrapper
-#   def to_int
-#     @io.to_i
-#   end
-# end
-
-# run -> env {[200, {"Content-Type" => "text/html"}, ["<h1>Hello World</h1>"]]}
-# require 'bundler'
 require 'faye/websocket'
 require 'socket'
+require 'json'
 
 class App
   attr_reader :env, :web_clients
@@ -21,31 +13,26 @@ class App
   end
 
   def listen_for_unix_socket
-    # p "--------------"
-    # serv = UNIXServer.new("tmp/sockets/web_socekts.sock")
-    # s = serv.accept
-    # p s.read
-    # p "--------------"
-
     File.delete "tmp/sockets/web_socekts.sock"
     server = UNIXServer.new("tmp/sockets/web_socekts.sock")
 
+    Thread.abort_on_exception = true
     Thread.start do
-      loop {                          # Servers run forever
-        Thread.start(server.accept) do |client|
-          p client.read
-          web_clients.first.send "From threeeead"
-          # client.puts(Time.now.ctime) # Send the time to the client
-          # client.puts "Closing the connection. Bye!"
-          client.close                # Disconnect from the client
+      loop {
+        client = server.accept
+        message = client.read
+        json_message = JSON.parse(message)
+
+        if json_message["type"] == "event"
+          web_clients.first.send message
         end
+
+        client.close
       }
     end
   end
 
   def call env
-
-    p "---------------------------------123"
 
     @env = env
 
@@ -55,19 +42,19 @@ class App
       web_clients << socket
 
       socket.on :open do
-        socket.send "Raaaaaack"
-        p "Open---------------------------------"
+        socket.send "Welcome in Raaaaaack"
+        p "Open ---------------------------------"
       end
 
       socket.on :message do |event|
-        p "Message---------------------------------"
+        p "Message From Browser ---------------------------------"
         p event.data
       end
 
       socket.on :close do
-        p "---------------------------------"
-        p "closed"
-        p "---------------------------------"
+        # p "---------------------------------"
+        # p "closed"
+        # p "---------------------------------"
       end
 
       socket.rack_response
