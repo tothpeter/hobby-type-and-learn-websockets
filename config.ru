@@ -1,5 +1,12 @@
 #\ -s puma -E production
 
+
+# class Rack::Lint::HijackWrapper
+#   def to_int
+#     @io.to_i
+#   end
+# end
+
 # run -> env {[200, {"Content-Type" => "text/html"}, ["<h1>Hello World</h1>"]]}
 # require 'bundler'
 require 'faye/websocket'
