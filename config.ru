@@ -10,10 +10,11 @@ module Faye
 end
 
 class App
-  attr_reader :env, :web_clients
+  attr_reader :env, :web_clients, :events
 
   def initialize
     @web_clients = []
+    @events = []
     listen_for_unix_socket
   end
 
@@ -50,7 +51,7 @@ class App
         json_message = JSON.parse(message)
 
         if json_message["type"] == "event"
-          send_event_to_browser json_message["event"]
+          incoming_event_from_unix json_message["event"]
         end
 
         client.close
@@ -58,18 +59,31 @@ class App
     end
   end
 
-  def send_event_to_browser event
+  def incoming_event_from_unix event
     socket = web_clients.find {|socket| socket.user_id == event["user_id"]}
-
     event["created_at"] = Time.now
+
+    if socket
+      send_event_to_browser event, socket
+    else
+      spawn_event event
+    end
+  end
+
+  def send_event_to_browser event, socket
     message = {
       type: "event",
       event: event
     }
 
-    if socket
-      socket.send JSON.generate(message)
-    end
+    socket.send JSON.generate(message)
+
+    events.delete event
+  end
+
+  def spawn_event event
+    events << event
+    # TODO: remove event after a certain time
   end
   
   def socket_request? env
@@ -89,6 +103,11 @@ class App
       # Expect something similar: {"type":"subscribe", "event":{"type": "cards.import.finished", "user_id": 1}}
       if message["type"] == "subscribe" && message["event"]["type"] == "cards.import.finished"
         socket.user_id = message["event"]["user_id"]
+
+        event = events.find {|event| event["user_id"] == message["event"]["user_id"]}
+        if event
+          send_event_to_browser event, socket
+        end
       end
     end
 
