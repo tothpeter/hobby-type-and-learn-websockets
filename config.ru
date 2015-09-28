@@ -17,6 +17,22 @@ class App
     listen_for_unix_socket
   end
 
+  def call env
+    @env = env
+
+    if socket_request? env
+      socket = spawn_socket
+      web_clients << socket
+      
+      socket.rack_response
+    else
+      [400, {"Content-Type" => "text/html"}, ["This service only used for websockets"]]
+    end
+
+  end
+
+  private
+
   def listen_for_unix_socket
     input_api_socket = "/tmp/websocekts_puma.sock"
 
@@ -34,11 +50,7 @@ class App
         json_message = JSON.parse(message)
 
         if json_message["type"] == "event"
-          socket = web_clients.find {|socket| socket.user_id == json_message["event"]["user_id"]}
-
-          if socket
-            socket.send message
-          end
+          send_event_to_browser json_message["event"]
         end
 
         client.close
@@ -46,22 +58,19 @@ class App
     end
   end
 
-  def call env
+  def send_event_to_browser event
+    socket = web_clients.find {|socket| socket.user_id == event["user_id"]}
 
-    @env = env
+    event["created_at"] = Time.now
+    message = {
+      type: "event",
+      event: event
+    }
 
-    if socket_request? env
-      socket = spawn_socket
-      web_clients << socket
-      
-      socket.rack_response
-    else
-      [400, {"Content-Type" => "text/html"}, ["This service only usef for web sockets"]]
+    if socket
+      socket.send JSON.generate(message)
     end
-
   end
-
-  private
   
   def socket_request? env
     Faye::WebSocket.websocket? env
@@ -72,7 +81,6 @@ class App
 
     socket.on :open do
       socket.send "Welcome in Raaaaaack"
-      p "Open ---------------------------------"
     end
 
     socket.on :message do |event|
@@ -85,6 +93,7 @@ class App
     end
 
     socket.on :close do
+      p "close --------------"
       web_clients.delete socket
     end
 

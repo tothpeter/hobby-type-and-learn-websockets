@@ -1,7 +1,7 @@
 require 'socket'
 require 'json'
 
-client = UNIXSocket.open("tmp/sockets/web_socekts.sock")
+client = UNIXSocket.open("/tmp/websocekts_puma.sock")
 
 message = {
   type: "event",
