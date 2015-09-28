@@ -1,5 +1,3 @@
-#\ -s puma -E production
-
 require 'faye/websocket'
 require 'socket'
 require 'json'
@@ -20,8 +18,13 @@ class App
   end
 
   def listen_for_unix_socket
-    File.delete "tmp/sockets/web_socekts.sock"
-    server = UNIXServer.new("tmp/sockets/web_socekts.sock")
+    input_api_socket = "/tmp/websocekts_puma.sock"
+
+    if File.exist? input_api_socket
+      File.delete input_api_socket
+    end
+    
+    server = UNIXServer.new input_api_socket
 
     Thread.abort_on_exception = true
     Thread.start do
@@ -31,7 +34,11 @@ class App
         json_message = JSON.parse(message)
 
         if json_message["type"] == "event"
-          web_clients.find {|socket| socket.user_id == json_message["event"]["user_id"]}.send message
+          socket = web_clients.find {|socket| socket.user_id == json_message["event"]["user_id"]}
+
+          if socket
+            socket.send message
+          end
         end
 
         client.close

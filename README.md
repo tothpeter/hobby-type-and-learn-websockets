@@ -3,6 +3,7 @@
 This app will be in charge to handle sockets with the browsers
 
 ## Run
-rackup
--- or --
-bundle exec puma
+rackup -s puma -E production
+
+### Run without production config
+bundle exec puma -C -
