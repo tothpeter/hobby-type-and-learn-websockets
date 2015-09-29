@@ -50,6 +50,8 @@ class App
         message = client.read
         json_message = JSON.parse(message)
 
+        p "Unix socket connected --------------------------------------------------------------"
+
         if json_message["type"] == "event"
           incoming_event_from_unix json_message["event"]
         end
@@ -97,7 +99,7 @@ class App
 
     socket.on :open do
       # socket.send "Welcome in Raaaaaack"
-      p "Open"
+      p "Browser connected"
     end
 
     socket.on :message do |event|
