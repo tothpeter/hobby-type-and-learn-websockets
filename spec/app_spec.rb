@@ -25,12 +25,18 @@ WebSocketSteps = RSpec::EM.async_steps do
 
     EM.add_timer(0.1, &callback)
   end
+
+  def stop_server &callback
+    @server.stop(true)
+    EM.next_tick(&callback)
+  end
   
-  def open_browser_socket &callback
+  
+  def open_browser_socket message, &callback
     @websocket = Faye::WebSocket::Client.new("ws://localhost:#{port}/", [], :proxy => {:origin => @proxy_url})
 
     @websocket.on :open do
-      @websocket.send '{"type":"subscribe", "event":{"type": "cards.import.finished", "user_id": 1}}'
+      @websocket.send JSON.generate message
     end
 
     EM.add_timer(0.1, &callback)
@@ -38,16 +44,10 @@ WebSocketSteps = RSpec::EM.async_steps do
 
   def listen_for_messages_from_server &callback
     @websocket.on :message do |message|
-      p "----------- got response fro mserver"
       @message = message.data
     end
 
     EM.add_timer(0.1, &callback)
-  end
-
-  def stop_server &callback
-    @server.stop(true)
-    EM.next_tick(&callback)
   end
 
   def send_unix_socket_message message, &callback
@@ -58,13 +58,11 @@ WebSocketSteps = RSpec::EM.async_steps do
     EM.add_timer(0.1, &callback)
   end
 
-  def check_response lambda, &callback
+  def check_response_from_server lambda, &callback
     lambda.call @message
     callback.call
   end
-
 end
-
 
 
 describe App do
@@ -75,32 +73,67 @@ describe App do
   before  { start_server }
   after  { stop_server }
 
-  describe "cards.import.finished event" do
-    it "sends the event back to the browser" do
-
-      message_from_delayed_job = {
-        type: "event",
+  let(:message_from_browser) {
+    {
+      type:"subscribe",
         event: {
-          type: "cards.import.finished",
+          type: "cards.import.finished", 
           user_id: 1
         }
-      }
-      
-      send_unix_socket_message message_from_delayed_job
-      open_browser_socket
+    }
+  }
 
-      listen_for_messages_from_server
-      
-      check_response ->(message) do
-        json_message = JSON.parse message
-        event = json_message["event"]
+  let(:message_from_delayed_job) {
+    {
+      type: "event",
+      event: {
+        type: "cards.import.finished",
+        user_id: 1
+      }
+    }
+  }
+
+  describe "cards.import.finished event" do
+    context "when browser connects first before unix socket" do
+      it "sends the event back to the browser" do
+
+        open_browser_socket message_from_browser
+        send_unix_socket_message message_from_delayed_job
+
+        listen_for_messages_from_server
         
-        expect(json_message["type"]).to eq "event"
+        check_response_from_server ->(message) do
+          json_message = JSON.parse message
+          event = json_message["event"]
+          
+          expect(json_message["type"]).to eq "event"
+          
+          expect(event["type"]).to eq message_from_delayed_job[:event][:type]
+          expect(event["user_id"]).to eq message_from_delayed_job[:event][:user_id]
+        end
         
-        expect(event["type"]).to eq "cards.import.finished"
-        expect(event["user_id"]).to eq message_from_delayed_job[:event][:user_id]
       end
-      
+    end
+
+    context "when unix socket connects first before browser" do
+      it "sends the event back to the browser" do
+
+        send_unix_socket_message message_from_delayed_job
+        open_browser_socket message_from_browser
+
+        listen_for_messages_from_server
+        
+        check_response_from_server ->(message) do
+          json_message = JSON.parse message
+          event = json_message["event"]
+          
+          expect(json_message["type"]).to eq "event"
+          
+          expect(event["type"]).to eq message_from_delayed_job[:event][:type]
+          expect(event["user_id"]).to eq message_from_delayed_job[:event][:user_id]
+        end
+        
+      end
     end
   end
 
