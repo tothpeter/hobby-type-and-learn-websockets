@@ -7,6 +7,6 @@ gem 'faye-websocket'
 gem 'json'
 gem 'rspec-eventmachine'
 
-# group :production do
+group :production do
   gem 'airbrake'
-# end
+end
