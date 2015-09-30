@@ -51,7 +51,7 @@ WebSocketSteps = RSpec::EM.async_steps do
   end
 
   def send_unix_socket_message message, &callback
-    client = UNIXSocket.open("/tmp/websocekts_puma.sock")
+    client = UNIXSocket.open("/tmp/websockets_unix.sock")
     client.print JSON.generate(message)
     client.close
 

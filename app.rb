@@ -35,7 +35,7 @@ class App
   private
 
   def listen_for_unix_socket
-    input_api_socket = "/tmp/websocekts_puma.sock"
+    input_api_socket = "/tmp/websockets_unix.sock"
 
     if File.exist? input_api_socket
       File.delete input_api_socket

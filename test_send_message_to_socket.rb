@@ -1,13 +1,13 @@
 require 'socket'
 require 'json'
 
-client = UNIXSocket.open("/tmp/websocekts_puma.sock")
+client = UNIXSocket.open("/tmp/websockets_unix.sock")
 
 message = {
   type: "event",
   event: {
     type: "cards.import.finished",
-    user_id: 1
+    user_id: 2
   }
   
 }
