@@ -24,7 +24,7 @@ class App
     @env = env
 
     if socket_request? env
-      socket = spawn_socket
+      socket = spawn_socket_from_browser
       web_clients << socket
       
       socket.rack_response
@@ -55,7 +55,7 @@ class App
         Logger.info "Unix socket connected"
 
         if json_message["type"] == "event"
-          incoming_event_from_unix json_message["event"]
+          handle_event_from_unix json_message["event"]
         end
 
         client.close
@@ -63,14 +63,14 @@ class App
     end
   end
 
-  def incoming_event_from_unix event
+  def handle_event_from_unix event
     socket = web_clients.find {|socket| socket.user_id == event["user_id"]}
     event["created_at"] = Time.now
 
     if socket
       send_event_to_browser event, socket
     else
-      spawn_event event
+      spawn_event_from_unix event
     end
   end
 
@@ -88,7 +88,7 @@ class App
     events.delete event
   end
 
-  def spawn_event event
+  def spawn_event_from_unix event
     events << event
     Logger.log "Incoming event from unix", :cyan
     Logger.info event
@@ -100,7 +100,7 @@ class App
     Faye::WebSocket.websocket? env
   end
 
-  def spawn_socket
+  def spawn_socket_from_browser
     socket = Faye::WebSocket.new env
 
     socket.on :open do
