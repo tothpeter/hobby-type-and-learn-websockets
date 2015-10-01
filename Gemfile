@@ -5,7 +5,6 @@ gem 'puma'
 gem 'rack'
 gem 'faye-websocket'
 gem 'json'
-gem 'rspec-eventmachine'
 
 group :production do
   gem 'airbrake'
@@ -15,4 +14,9 @@ group :development do
   gem 'capistrano'
   gem 'capistrano-bundler', require: false
   gem 'capistrano3-puma'
+end
+
+group :test do
+  gem 'rspec'
+  gem 'rspec-eventmachine'
 end

@@ -66,6 +66,7 @@ DEPENDENCIES
   json
   puma
   rack
+  rspec
   rspec-eventmachine
 
 BUNDLED WITH
