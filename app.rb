@@ -2,6 +2,8 @@ require 'faye/websocket'
 require 'socket'
 require 'json'
 
+require './lib/logger'
+
 
 module Faye
   class WebSocket
@@ -50,7 +52,7 @@ class App
         message = client.read
         json_message = JSON.parse(message)
 
-        p "Unix socket connected --------------------------------------------------------------"
+        Logger.info "Unix socket connected"
 
         if json_message["type"] == "event"
           incoming_event_from_unix json_message["event"]
@@ -78,7 +80,8 @@ class App
       event: event
     }
 
-    p "Send event to browser -------------"
+    Logger.success "Send event to browser"
+    Logger.info message
 
     socket.send JSON.generate(message)
 
@@ -87,6 +90,9 @@ class App
 
   def spawn_event event
     events << event
+    Logger.log "Incoming event from unix", :cyan
+    Logger.info event
+
     # TODO: remove event after a certain time
   end
   
@@ -98,13 +104,15 @@ class App
     socket = Faye::WebSocket.new env
 
     socket.on :open do
-      # socket.send "Welcome in Raaaaaack"
-      p "Browser connected"
+      socket.send '{"message":"Welcome in Type and Learn Websocket Service"}'
+
+      Logger.info "Browser connected"
     end
 
     socket.on :message do |event|
-      p "Message recived -------------"
-      p event.data
+      Logger.log "Message recived from browser", :magenta
+      Logger.info event.data
+      
       message = JSON.parse event.data
 
       # Expect something similar: {"type":"subscribe", "event":{"type": "cards.import.finished", "user_id": 1}}
@@ -119,7 +127,7 @@ class App
     end
 
     socket.on :close do
-      p "close --------------"
+      Logger.info "Close websocket"
       web_clients.delete socket
     end
 
