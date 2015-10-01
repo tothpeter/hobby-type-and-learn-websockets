@@ -7,16 +7,21 @@ require './lib/logger'
 
 module Faye
   class WebSocket
-    attr_accessor :user_id
+    attr_accessor :user_id, :thread
   end
 end
 
 class App
+  attr_accessor :wait_before_remove_event, :wait_before_close_browser_socket
   attr_reader :env, :web_clients, :events
+
+  Thread.abort_on_exception = true
 
   def initialize
     @web_clients = []
     @events = []
+    @wait_before_remove_event = 20
+    @wait_before_close_browser_socket = 20
     listen_for_unix_socket
   end
 
@@ -45,7 +50,6 @@ class App
     
     server = UNIXServer.new input_api_socket
 
-    Thread.abort_on_exception = true
     Thread.start do
       loop {
         client = server.accept
@@ -75,6 +79,10 @@ class App
   end
 
   def send_event_to_browser event, socket
+    Thread.kill event[:thread] if event[:thread]
+    Thread.kill socket.thread if socket.thread
+    event.delete :thread
+
     message = {
       type: "event",
       event: event
@@ -89,11 +97,17 @@ class App
   end
 
   def spawn_event_from_unix event
-    events << event
+    thread = Thread.start do
+      sleep wait_before_remove_event
+      Logger.error "Browser has not subscribed for the unix event after #{wait_before_remove_event}s remove it"
+      events.delete event
+    end
+
     Logger.log "Incoming event from unix", :cyan
     Logger.info event
-
-    # TODO: remove event after a certain time
+    
+    event[:thread] = thread
+    events << event
   end
   
   def socket_request? env
@@ -105,8 +119,13 @@ class App
 
     socket.on :open do
       socket.send '{"message":"Welcome in Type and Learn Websocket Service"}'
-
       Logger.info "Browser connected"
+      
+      socket.thread = Thread.start do
+        sleep wait_before_close_browser_socket
+        Logger.error "Browser has not sent any message after #{wait_before_close_browser_socket}s, force close connection"
+        socket.close
+      end
     end
 
     socket.on :message do |event|

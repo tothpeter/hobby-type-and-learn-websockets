@@ -12,14 +12,17 @@ end
 
 
 WebSocketSteps = RSpec::EM.async_steps do
+
   def start_server &callback
-    app = App.new
+    @app = App.new
+    @app.wait_before_remove_event = 2
+    @app.wait_before_close_browser_socket = 2
 
     events = Puma::Events.new(StringIO.new, StringIO.new)
     binder = Puma::Binder.new(events)
-    binder.parse(["tcp://0.0.0.0:#{port}"], app)
+    binder.parse(["tcp://0.0.0.0:#{port}"], @app)
     
-    @server = Puma::Server.new(app, events)
+    @server = Puma::Server.new(@app, events)
     @server.binder = binder
     @server.run
 
@@ -32,11 +35,13 @@ WebSocketSteps = RSpec::EM.async_steps do
   end
   
   
-  def open_browser_socket message, &callback
+  def open_browser_socket message = nil, &callback
     @websocket = Faye::WebSocket::Client.new("ws://localhost:#{port}/", [], :proxy => {:origin => @proxy_url})
 
-    @websocket.on :open do
-      @websocket.send JSON.generate message
+    if message
+      @websocket.on :open do
+        @websocket.send JSON.generate message
+      end
     end
 
     EM.add_timer(0.1, &callback)
@@ -61,6 +66,20 @@ WebSocketSteps = RSpec::EM.async_steps do
   def check_response_from_server lambda, &callback
     lambda.call @message
     callback.call
+  end
+
+  def check_event_count length, &callback
+    expect(@app.events.length).to eq length
+    callback.call
+  end
+
+  def check_socket_count length, &callback
+    expect(@app.web_clients.length).to eq length
+    callback.call
+  end
+
+  def delay seconds, &callback
+    EM.add_timer(seconds, &callback)
   end
 end
 
@@ -135,6 +154,22 @@ describe App do
         
       end
     end
-  end
 
+    context "when browser does not connect within 2 seconds" do
+      it "deletes the event" do
+        send_unix_socket_message message_from_delayed_job
+        delay 3
+        check_event_count 0
+      end
+    end
+
+    context "when browser does not busbscribe within 2 seconds" do
+      it "closes the socekt" do
+        open_browser_socket
+        delay 3
+        check_socket_count 0
+      end
+    end
+
+  end
 end
