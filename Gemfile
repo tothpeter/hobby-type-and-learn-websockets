@@ -10,3 +10,9 @@ gem 'rspec-eventmachine'
 group :production do
   gem 'airbrake'
 end
+
+group :development do
+  gem 'capistrano'
+  gem 'capistrano-bundler', require: false
+  gem 'capistrano3-puma'
+end
