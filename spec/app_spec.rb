@@ -10,6 +10,7 @@ class App
   end
 end
 
+Logger.enable_log = false
 
 WebSocketSteps = RSpec::EM.async_steps do
 

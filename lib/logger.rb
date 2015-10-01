@@ -25,19 +25,27 @@ class String
 end
 
 class Logger
-  def self.log message, color = :gray
-    puts "[#{Time.now}] #{message}".send color
-  end
+  @enable_log = true
+  
+  class << self
+    attr_accessor :enable_log
 
-  def self.error message
-    log message, :red
-  end
+    def log message, color = :gray
+      if @enable_log
+        puts "[#{Time.now}] #{message}".send color
+      end
+    end
 
-  def self.info message
-    log message, :gray
-  end
+    def error message
+      log message, :red
+    end
 
-  def self.success message
-    log message, :green
+    def info message
+      log message, :gray
+    end
+
+    def success message
+      log message, :green
+    end
   end
 end
