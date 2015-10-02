@@ -1,9 +1,31 @@
-# Type and Learn Sockets
+# Type and Learn WebSockets
 
-This app will be in charge to handle sockets with the browsers
+This is a lightweight rack based micro service using Puma application server. This project is a part of my home project called Type and Learn.
 
-## Run
+Its duty is:
+- to receive and handle subscription messages for a certain event from the browser via web sockets
+- to receive and handle event messages from other internal processes via unix sockets
+- and after all send the right event to the right browser
+
+
+## Run in production
+```
 rackup -s puma -E production
+```
+--or--
+```
+bundle exec puma
+```
 
-### Run without production config
+## Run without production config
+```
 bundle exec puma -C -
+```
+
+## Ruby version
+2.2.3
+
+## How to run the test suite
+```
+bundle exec rspec
+```
