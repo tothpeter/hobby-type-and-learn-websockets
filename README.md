@@ -1,5 +1,7 @@
 # Type and Learn WebSockets
 
+[The main project page](https://github.com/tothpeter/type_and_learn)
+
 This is a lightweight rack based micro service using Puma application server. This project is a part of my home project called Type and Learn.
 
 Its duty is:
