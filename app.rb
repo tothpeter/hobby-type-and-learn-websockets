@@ -31,7 +31,7 @@ class App
     if socket_request? env
       socket = spawn_socket_from_browser
       web_clients << socket
-      
+
       socket.rack_response
     else
       [400, {"Content-Type" => "text/html"}, ["This service only used for websockets"]]
@@ -42,13 +42,13 @@ class App
   private
 
   def listen_for_unix_socket
-    input_api_socket = "/tmp/websockets_unix.sock"
+    input_api_socket_path = "/tmp/websockets_unix.sock"
 
-    if File.exist? input_api_socket
-      File.delete input_api_socket
+    if File.exist? input_api_socket_path
+      File.delete input_api_socket_path
     end
-    
-    server = UNIXServer.new input_api_socket
+
+    server = UNIXServer.new input_api_socket_path
 
     Thread.start do
       loop {
@@ -105,11 +105,11 @@ class App
 
     Logger.log "Incoming event from unix", :cyan
     Logger.info event
-    
+
     event[:thread] = thread
     events << event
   end
-  
+
   def socket_request? env
     Faye::WebSocket.websocket? env
   end
@@ -120,7 +120,7 @@ class App
     socket.on :open do
       socket.send '{"message":"Welcome in Type and Learn Websocket Service"}'
       Logger.info "Browser connected"
-      
+
       socket.thread = Thread.start do
         sleep wait_before_close_browser_socket
         Logger.error "Browser has not sent any message after #{wait_before_close_browser_socket}s, force close connection"
@@ -131,7 +131,7 @@ class App
     socket.on :message do |event|
       Logger.log "Message recived from browser", :magenta
       Logger.info event.data
-      
+
       message = JSON.parse event.data
 
       # Expect something similar: {"type":"subscribe", "event":{"type": "cards.import.finished", "user_id": 1}}

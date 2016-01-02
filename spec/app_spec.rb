@@ -22,7 +22,7 @@ WebSocketSteps = RSpec::EM.async_steps do
     events = Puma::Events.new(StringIO.new, StringIO.new)
     binder = Puma::Binder.new(events)
     binder.parse(["tcp://0.0.0.0:#{port}"], @app)
-    
+
     @server = Puma::Server.new(@app, events)
     @server.binder = binder
     @server.run
@@ -34,8 +34,8 @@ WebSocketSteps = RSpec::EM.async_steps do
     @server.stop(true)
     EM.next_tick(&callback)
   end
-  
-  
+
+
   def open_browser_socket message = nil, &callback
     @websocket = Faye::WebSocket::Client.new("ws://localhost:#{port}/", [], :proxy => {:origin => @proxy_url})
 
@@ -96,10 +96,10 @@ describe App do
   let(:message_from_browser) {
     {
       type:"subscribe",
-        event: {
-          type: "cards.import.finished", 
-          user_id: 1
-        }
+      event: {
+        type: "cards.import.finished",
+        user_id: 1
+      }
     }
   }
 
@@ -121,17 +121,17 @@ describe App do
         send_unix_socket_message message_from_delayed_job
 
         listen_for_messages_from_server
-        
+
         check_response_from_server ->(message) do
           json_message = JSON.parse message
           event = json_message["event"]
-          
+
           expect(json_message["type"]).to eq "event"
-          
+
           expect(event["type"]).to eq message_from_delayed_job[:event][:type]
           expect(event["user_id"]).to eq message_from_delayed_job[:event][:user_id]
         end
-        
+
       end
     end
 
@@ -142,17 +142,17 @@ describe App do
         open_browser_socket message_from_browser
 
         listen_for_messages_from_server
-        
+
         check_response_from_server ->(message) do
           json_message = JSON.parse message
           event = json_message["event"]
-          
+
           expect(json_message["type"]).to eq "event"
-          
+
           expect(event["type"]).to eq message_from_delayed_job[:event][:type]
           expect(event["user_id"]).to eq message_from_delayed_job[:event][:user_id]
         end
-        
+
       end
     end
 
